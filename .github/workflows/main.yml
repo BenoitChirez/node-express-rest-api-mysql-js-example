@@ -17,8 +17,8 @@ jobs:
       - name: Setup Infrastructure (Vagrant & K3s)
         run: |
           cd infrastructure
-          chmod +x setup_infra.sh
-          ./setup_infra.sh
+          wsl chmod +x setup_infra.sh
+          wsl bash ./setup_infra.sh
         # Ce script est idempotent, il ne recréera pas tout si ça existe déjà
 
       # ÉTAPE 2 : BUILDER L'IMAGE
