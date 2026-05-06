@@ -93,3 +93,30 @@ mysql-54fcb9488-x7sfj            1/1     Running   0
 ```
 
 ---
+
+
+## 🔄 Partie 4 : Mise en place du CI/CD (Automatisation)
+
+L'objectif de cette étape est d'automatiser le cycle de déploiement. Dès qu'un changement est poussé sur la branche `main`, l'infrastructure est mise à jour, l'image est reconstruite et déployée sans intervention manuelle.
+
+### 1. Configuration du Runner Self-Hosted
+Pour permettre à GitHub de piloter une infrastructure locale (Vagrant/K3s), un **runner self-hosted** a été configuré.
+- **Installation** : Le runner a été installé directement sur la machine hôte (ou la VM) via l'interface GitHub (*Settings > Actions > Runners*).
+- **Dossier `../TP_DevOps_Runner/actions-runner/`** : Ce dossier local contient les scripts binaires (`run.sh`, `config.sh`) permettant de maintenir la connexion persistante avec GitHub Actions. (la position de ce dossier importe peux tant qu'il ne se trouve pas dans le github (pour éviter de commit à chaques fois une grande quantité de fichier))
+
+### 2. Le Workflow : `.github/workflows/main.yml`
+Le cœur de l'automatisation se trouve dans le fichier `.github/workflows/main.yml`. Ce fichier définit trois étapes clés exécutées sur le runner self-hosted :
+
+1.  **Configuration de l'infra** : Exécution du script `setup_infra.sh` pour s'assurer que K3s est opérationnel.
+2.  **Build de l'image** : Construction de l'image Docker à partir du dossier `/app` avec le tag `latest`.
+3.  **Déploiement** : Application des manifests Kubernetes du dossier `/k8s` et redémarrage (rollout) du déploiement `api-lacet` pour forcer la mise à jour des Pods.
+
+### 3. Manipulations sur GitHub (Secrets & Interface)
+Pour que le pipeline fonctionne en toute sécurité, les manipulations suivantes ont été effectuées sur l'interface GitHub :
+- **GitHub Secrets** : Stockage sécurisé des identifiants Docker Hub (`DOCKER_USERNAME` et `DOCKER_PASSWORD`) pour permettre le push de l'image sans les écrire en clair dans le code.
+- **Monitoring** : Suivi en temps réel de l'exécution via l'onglet **Actions** dans github. Chaque étape (Infra, Build, Deploy) est validée par un indicateur vert, confirmant le succès du processus.
+
+On doit normalement voir sur github ceci : 
+![github_workflow](img/image_workflow.png)
+
+---
