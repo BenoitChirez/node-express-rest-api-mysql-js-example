@@ -1,0 +1,4 @@
+[2026-05-06 20:58:33Z INFO HostContext] No proxy settings were found based on environmental variables (http_proxy/https_proxy/HTTP_PROXY/HTTPS_PROXY)
+[2026-05-06 20:58:33Z INFO HostContext] Well known directory 'Bin': 'C:\Users\bchir\TP_DevOps\actions-runner\bin'
+[2026-05-06 20:58:33Z INFO HostContext] Well known directory 'Root': 'C:\Users\bchir\TP_DevOps\actions-runner'
+[2026-05-06 20:58:33Z INFO HostContext] Well known config file 'Credentials': 'C:\Users\bchir\TP_DevOps\actions-runner\.credentials'

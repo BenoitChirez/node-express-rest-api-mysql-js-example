@@ -1,0 +1,11 @@
+﻿{
+  "agentId": 2,
+  "agentName": "LY1564",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus24.actions.githubusercontent.com/9czcRZIySBtQRseDfK750fkYJFgZioQY2H9GRwBiKuifi5Xgsm/",
+  "gitHubUrl": "https://github.com/BenoitChirez/node-express-rest-api-mysql-js-example",
+  "workFolder": "_work",
+  "useV2Flow": true,
+  "serverUrlV2": "https://broker.actions.githubusercontent.com/"
+}
