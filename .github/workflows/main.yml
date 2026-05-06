@@ -1,0 +1,40 @@
+name: Pipeline CI/CD Final
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  devops-pipeline:
+    # CRITICAL: On utilise ton propre runner
+    runs-on: self-hosted 
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # ÉTAPE 1 : CONFIGURER L'INFRASTRUCTURE
+      - name: Setup Infrastructure (Vagrant & K3s)
+        run: |
+          cd infrastructure
+          chmod +x setup_infra.sh
+          ./setup_infra.sh
+        # Ce script est idempotent, il ne recréera pas tout si ça existe déjà
+
+      # ÉTAPE 2 : BUILDER L'IMAGE
+      - name: Build Docker Image
+        run: |
+          cd app
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/api-lacets:latest .
+
+      # ÉTAPE 3 : DÉPLOYER SUR L'INFRASTRUCTURE
+      - name: Deploy to K3s
+        run: |
+          # On applique les manifests k8s
+          sudo kubectl apply -f k8s/mysql-pvc.yaml
+          sudo kubectl apply -f k8s/mysql-db.yaml
+          sudo kubectl apply -f k8s/api-deployment.yaml
+          sudo kubectl apply -f k8s/api-hpa.yaml
+          
+          # Force le refresh de l'image si elle n'a pas changé de tag
+          sudo kubectl rollout restart deployment/api-lacet

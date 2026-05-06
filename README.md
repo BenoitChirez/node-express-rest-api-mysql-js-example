@@ -1,100 +1,95 @@
-<div id="top"></div>
+# TP Final DevOps - Startup Lacets Connectés
 
-<h1 align="center">Node.js Express REST API MySQL JS Example</h1>
+Ce projet vise à mettre en place une infrastructure complète, automatisée et scalable pour le déploiement d'une API REST Node.js.
 
-<div align="center">
-  <p align="center">
-    This REST API example is a basic backend application to test basic API functions with MySQL database.
-  </p>
-  <a href="https://www.postman.com/workspace/node-js-express-mysql-rest-api-example/overview">View Postman Files</a>
-</div>
-
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-application">About The Application</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li><a href="#how-to-install">How To Install</a></li>
-    <li><a href="#available-scripts">Available Scripts</a></li>
-    <li><a href="#postman">Postman</a></li>
-  </ol>
-</details>
-
-<!-- ABOUT THE APPLICATION -->
-
-## About The Application
-
-This REST API example is a basic backend application to test basic API functions with MySQL database.
-
-It is built with Node.js and Express Framework with Javascript. In addition, the applications database is MySQL, with the use of mysql2 library.
-
-In the applicaiton we can manage user data, such as create/edit/delete a user. In addition, we can get all the users in the database.
-
-The point of this backend application is to test CRUD operations with MySQL database.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-### Built With
-
--   [Node.js](https://nodejs.org/en/)
--   [Express](https://expressjs.com/)
--   [Cors](https://www.npmjs.com/package/cors)
--   [MySQL2](https://www.npmjs.com/package/mysql2)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-<!-- INSTALLATION INSTRUCTIONS -->
-
-## How To Install
-
-**Git clone**
-
-```
-git clone https://github.com/almoggutin/Node-Express-REST-API-MySQL-JS-Example
+## 📁 Structure du Projet
+```text
+.
+├── app/                        # Code source de l'API (cloné)
+│   └── Dockerfile              # Optimisation de l'image
+├── infrastructure/             # Automatisation de l'infra
+│   ├── Vagrantfile             # Définition de la VM Debian
+│   ├── inventory.ini           # Inventaire pour Ansible
+│   ├── install_k3s.yaml        # Playbook d'installation K3s
+│   └── setup_infra.sh          # Script d'orchestration global
+└── README.md                   # Documentation (ce fichier)
 ```
 
-**Instructions**
+---
 
--   After cloning the the repository run `npm i` in order to install all the dependencies.
--   Create an env file in the root of the project named .env and fill in the follwing variables: PORT, DB_HOST, DB_PORT, DB_USERNAME, DB_USERNAME_PASSWORD, DB_NAME.
--   In the sql directory, there are sql files that you will need to execute in order to initialize the database.
+## 🏗️ Partie 1 : Préparation de l'infrastructure
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+L'objectif était de créer une infrastructure "Disposable" (jetable) et reproductible.
 
-<!--  AVAILABLE SCRIPTS -->
+### Choix techniques
+- **Vagrant** : Utilisation d'une box `debian/bookworm64` configurée avec **2 Go de RAM** et **2 CPUs**.
+- **Réseau** : Configuration d'une IP statique `192.168.56.10` sur un réseau privé (`private_network`) pour garantir une connectivité SSH stable.
+- **Ansible** : Automatisation de l'installation de **K3s** (Kubernetes léger) de manière idempotente.
 
-## Available Scripts
+### Résolution de problèmes (Troubleshooting)
+1. **Conflit de nom VirtualBox** : Retrait du nom fixe `vb.name` pour laisser Vagrant gérer l'unicité et éviter l'erreur `VERR_ALREADY_EXISTS`.
+2. **Droits SSH (WSL)** : Sous Windows/WSL, les clés SSH sur `/mnt/c` ont des droits trop larges (0777). La clé a été déplacée dans le système de fichiers natif Linux (`~/.ssh/keys/`) avec un `chmod 600` pour permettre la connexion Ansible.
+3. **Fingerprint SSH** : Utilisation de `StrictHostKeyChecking=no` dans l'inventaire pour automatiser le déploiement sans intervention manuelle.
 
-In the project directory, you can run:
+### Commandes pour déployer l'infra
+```bash
+cd infrastructure
+chmod +x setup_infra.sh
+./setup_infra.sh
+```
+*Vérification :* `vagrant ssh -c "sudo k3s kubectl get nodes"`
 
-### `npm start`
+---
 
-Runs the app in the production mode.\
-However, this script is only meant to be run when deploying the application. The application is built, where you need to setup the env variables on the machine that you will be hosting it on or on a web hosting service, unlike in development mode.
 
-### `npm run dev`
+## 📦 Partie 2 : Conteneurisation de l'application
 
-Runs the app in the development mode.\
-Open localhost on the port you decided on in the env variables to view it in the browser.
+L'objectif était de créer une image Docker légère, sécurisée et prête pour la production.
 
-The API will reload if you make edits with the use of nodemon.
+### Choix d'optimisation (Dockerfile)
+- **Image de base** : `node:20-alpine` pour réduire la taille de l'image (environ 160 Mo) et limiter la surface d'attaque.
+- **Multi-stage build (logique)** : Utilisation de `npm install --production` pour exclure les dépendances de développement.
+- **Gestion des processus** : L'application est lancée directement via `node server.js` (ou via le point d'entrée défini) pour une meilleure gestion des signaux système par Docker.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+### Publication
+L'image est hébergée sur Docker Hub et configurée pour l'architecture `amd64` (Linux) afin d'être compatible avec le cluster K3s.
+- **Image** : `benoitchirez/api-lacets:v1`
 
-<!-- POSTMAN -->
+---
 
-## Postman
+## 🚀 Partie 3 : Orchestration avec Kubernetes
 
-If you would like to run the files locally on your machine in the postman desktop application, included in the repository, in the `postman` directory all the files so you can import them. In addition you will have to configure env variables in postman so that you will be able to test properly everything.
+Le déploiement utilise Kubernetes (K3s) pour garantir la haute disponibilité et la scalabilité de l'API.
 
-<div align="center">
-  <img src="./assets/postman/postman-global-env-variables.png" alt="Postman global env variables."/>
-  <img src="./assets/postman/postman-jobs-env-variables.png" alt="Postman admin env variables."/>
-</div>
+### Architecture des Manifests (Dossier /k8s)
+- **Persistance (MySQL)** :
+    - Un `PersistentVolumeClaim` (PVC) de **1Go** garantit que les données de la startup ne sont pas perdues en cas de redémarrage du Pod.
+    - Le déploiement MySQL utilise ce volume monté sur `/var/lib/mysql`.
+- **Scalabilité (HPA)** :
+    - Un `HorizontalPodAutoscaler` surveille l'utilisation CPU.
+    - Le nombre de Pods de l'API varie automatiquement entre **1 et 3 réplicas** selon la charge (seuil à 50% CPU).
+- **Sécurité Réseau** :
+    - Le service `api-lacet` est de type `ClusterIP`. L'API est donc exposée sur le **port 80** à l'intérieur du cluster mais reste **invisible de l'extérieur**.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+### Commandes de déploiement
+```bash
+# Application de la configuration
+vagrant ssh -c "sudo kubectl apply -f /vagrant/k8s/"
+```
+
+### Vérification du statut final
+Le déploiement est validé avec les deux Pods en statut `Running` :
+- `api-lacet-xxx` : Opérationnel après résolution automatique des dépendances (RESTARTS: 2 au démarrage pour attendre MySQL).
+- `mysql-xxx` : Opérationnel et lié au volume persistant.
+
+```bash
+# Commande de vérification
+vagrant ssh -c "sudo kubectl get pods,pvc,hpa"
+```
+```text
+NAME                             READY   STATUS    RESTARTS
+api-lacet-6d54f75689-lfxx6       1/1     Running   2
+mysql-54fcb9488-x7sfj            1/1     Running   0
+```
+
+---

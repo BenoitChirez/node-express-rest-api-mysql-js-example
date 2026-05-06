@@ -1,0 +1,15 @@
+---
+- name: Installation de K3s
+  hosts: k3s_nodes
+  become: yes
+  tasks:
+    - name: Installation de curl
+      apt:
+        name: curl
+        state: present
+        update_cache: yes
+
+    - name: Execution du script K3s
+      shell: curl -sfL https://get.k3s.io | sh -
+      args:
+        creates: /usr/local/bin/k3s
