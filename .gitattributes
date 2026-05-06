@@ -1,0 +1,5 @@
+# Force Git à toujours utiliser LF (Unix) pour les scripts Bash
+*.sh text eol=lf
+
+*.yaml text eol=lf
+*.yml text eol=lf

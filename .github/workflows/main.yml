@@ -31,10 +31,7 @@ jobs:
       - name: Deploy to K3s
         run: |
           # On applique les manifests k8s
-          sudo kubectl apply -f k8s/mysql-pvc.yaml
-          sudo kubectl apply -f k8s/mysql-db.yaml
-          sudo kubectl apply -f k8s/api-deployment.yaml
-          sudo kubectl apply -f k8s/api-hpa.yaml
+          wsl kubectl apply -f k8s/
           
           # Force le refresh de l'image si elle n'a pas changé de tag
-          sudo kubectl rollout restart deployment/api-lacet
+          wsl kubectl rollout restart deployment/api-lacet
