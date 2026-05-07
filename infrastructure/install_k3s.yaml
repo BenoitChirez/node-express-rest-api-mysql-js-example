@@ -1,7 +1,7 @@
 ---
 - name: Installation de K3s
   hosts: k3s_nodes
-  become: yes
+  become: yes # sert à exécuter les tâches
   tasks:
     - name: Installation de curl
       apt:

@@ -19,7 +19,6 @@ jobs:
           cd infrastructure
           wsl chmod +x setup_infra.sh
           wsl bash ./setup_infra.sh
-        # Ce script est idempotent, il ne recréera pas tout si ça existe déjà
 
       # ÉTAPE 2 : BUILDER L'IMAGE
       - name: Build Docker Image
@@ -30,7 +29,7 @@ jobs:
       # ÉTAPE 3 : DÉPLOYER SUR L'INFRASTRUCTURE
       - name: Deploy to K3s
         run: |
-          # On applique les manifests k8s
+          # On applique les k8s
           wsl kubectl apply -f k8s/
           
           # Force le refresh de l'image si elle n'a pas changé de tag

@@ -5,46 +5,82 @@ Ce projet vise à mettre en place une infrastructure complète, automatisée et 
 ## 📁 Structure du Projet
 ```text
 .
-├── app/                        # Code source de l'API (cloné)
-│   └── Dockerfile              # Optimisation de l'image
-├── infrastructure/             # Automatisation de l'infra
-│   ├── Vagrantfile             # Définition de la VM Debian
-│   ├── inventory.ini           # Inventaire pour Ansible
-│   ├── install_k3s.yaml        # Playbook d'installation K3s
-│   └── setup_infra.sh          # Script d'orchestration global
-└── README.md                   # Documentation (ce fichier)
+├── README.md
+├── TP Final.pdf
+├── app
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── assets
+│   │   └── postman
+│   │       ├── postman-global-env-variables.png
+│   │       └── postman-jobs-env-variables.png
+│   ├── config
+│   │   └── default.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postman
+│   │   └── User.postman_collection.json
+│   ├── sql
+│   │   └── init-db.sql
+│   └── src
+│       ├── app.js
+│       ├── controllers
+│       │   └── api.controller.js
+│       ├── databases
+│       │   └── mysql.db.js
+│       ├── index.js
+│       ├── models
+│       │   └── user.model.js
+│       └── routers
+│           └── api.router.js
+├── img
+│   └── image_workflow.png
+├── infrastructure
+│   ├── Vagrantfile
+│   ├── install_k3s.yaml
+│   ├── inventory.ini
+│   └── setup_infra.sh
+└── k8s
+    ├── api-deployment.yaml
+    ├── api-hpa.yaml
+    ├── mysql-db.yaml
+    └── mysql-pvc.yaml
+
+15 directories, 26 files
 ```
 
 ---
 
-## 🏗️ Partie 1 : Préparation de l'infrastructure
+## Partie 1 : Préparation de l'infrastructure
 
-L'objectif était de créer une infrastructure "Disposable" (jetable) et reproductible.
+L'objectif est de mettre en place une infrastructure, qui servira à déployer l’application.
 
 ### Choix techniques
 - **Vagrant** : Utilisation d'une box `debian/bookworm64` configurée avec **2 Go de RAM** et **2 CPUs**.
 - **Réseau** : Configuration d'une IP statique `192.168.56.10` sur un réseau privé (`private_network`) pour garantir une connectivité SSH stable.
 - **Ansible** : Automatisation de l'installation de **K3s** (Kubernetes léger) de manière idempotente.
 
-### Résolution de problèmes (Troubleshooting)
-1. **Conflit de nom VirtualBox** : Retrait du nom fixe `vb.name` pour laisser Vagrant gérer l'unicité et éviter l'erreur `VERR_ALREADY_EXISTS`.
-2. **Droits SSH (WSL)** : Sous Windows/WSL, les clés SSH sur `/mnt/c` ont des droits trop larges (0777). La clé a été déplacée dans le système de fichiers natif Linux (`~/.ssh/keys/`) avec un `chmod 600` pour permettre la connexion Ansible.
-3. **Fingerprint SSH** : Utilisation de `StrictHostKeyChecking=no` dans l'inventaire pour automatiser le déploiement sans intervention manuelle.
-
-### Commandes pour déployer l'infra
+### Commandes pour déployer l'infrastructure
 ```bash
 cd infrastructure
 chmod +x setup_infra.sh
 ./setup_infra.sh
 ```
-*Vérification :* `vagrant ssh -c "sudo k3s kubectl get nodes"`
-
+- *Vérification :* `vagrant ssh -c "sudo k3s kubectl get nodes"`
+- On est sencé avoir notre node en position Ready.
 ---
 
+### Descriptif des fichiers
+- **Vagrantfile** : Définit les spécifications de la machine virtuelle (OS, ressources matérielles, réseau) via VirtualBox.
 
-## 📦 Partie 2 : Conteneurisation de l'application
+- **install_k3s.yaml** : Playbook Ansible automatisant le provisionnement logiciel du cluster Kubernetes sur le nœud Debian.
 
-L'objectif était de créer une image Docker légère, sécurisée et prête pour la production.
+- **(Rappel Kubernetes)** : K3s est une distribution Kubernetes certifiée et légère. Il agit comme l'orchestrateur central chargé de piloter le cycle de vie des conteneurs.
+
+
+## Partie 2 : Conteneurisation de l'application
+
+L'objectif était de créer une image Docker la plus légère, sécurisée possible et prête pour la production.
 
 ### Choix d'optimisation (Dockerfile)
 - **Image de base** : `node:20-alpine` pour réduire la taille de l'image (environ 160 Mo) et limiter la surface d'attaque.
@@ -55,7 +91,18 @@ L'objectif était de créer une image Docker légère, sécurisée et prête pou
 L'image est hébergée sur Docker Hub et configurée pour l'architecture `amd64` (Linux) afin d'être compatible avec le cluster K3s.
 - **Image** : `benoitchirez/api-lacets:v1`
 
+### Descriptif des fichiers
+- **Dockerfile** : Manifeste de construction décrivant les couches (layers) nécessaires pour encapsuler l'application Node.js.
+
+- **(Rappel Conteneurs/Images)** :
+
+    - **Image** : Artefact immuable contenant le code et son environnement d'exécution.
+
+    - **Conteneur** : Instance isolée d'une image. L'intérêt majeur est la portabilité : l'application fonctionne de manière identique quel que soit l'hôte.
+
 ---
+
+
 
 ## 🚀 Partie 3 : Orchestration avec Kubernetes
 
@@ -92,6 +139,23 @@ api-lacet-6d54f75689-lfxx6       1/1     Running   2
 mysql-54fcb9488-x7sfj            1/1     Running   0
 ```
 
+### Descriptif des fichiers
+- **mysql-pvc.yaml** : Définit une ressource de stockage persistante de 1Go pour garantir l'intégrité des données MySQL en cas de recréation du Pod.
+
+- **mysql-db.yaml** : Déploiement de la base de données MySQL 5.7 associé à un service ClusterIP pour l'exposition interne.
+
+- **api-deployment.yaml** : Déploiement de l'API REST incluant les limites de ressources (CPU/RAM) et un service de type ClusterIP pour restreindre l'accès à l'intérieur du cluster.
+
+- **api-hpa.yaml** : Configuration de l'auto-scaling horizontal permettant de faire varier dynamiquement le nombre de réplicas de 1 à 3 selon la charge CPU.
+
+- **(Rappel Kubernetes)** :
+
+    - **Pod** : Plus petite unité d'exécution contenant un ou plusieurs conteneurs.
+
+    - **Service** : Abstraction réseau fournissant une adresse IP stable pour joindre un groupe de Pods.
+
+    - **HPA** : Mécanisme d'ajustement automatique de la capacité (scaling) basé sur l'utilisation des ressources.
+
 ---
 
 
@@ -119,4 +183,8 @@ Pour que le pipeline fonctionne en toute sécurité, les manipulations suivantes
 On doit normalement voir sur github ceci : 
 ![github_workflow](img/image_workflow.png)
 
+### Descriptif des fichiers
+- **.github/workflows/main.yml** : Workflow GitHub Actions orchestrant les étapes de build, de push d'image et de mise à jour du déploiement.
+
+- **(Rappel)** : Le Runner Self-hosted est un agent d'exécution installé localement. Il permet au pipeline GitHub d'interagir directement avec l'infrastructure locale (Vagrant).
 ---
